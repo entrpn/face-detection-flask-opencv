@@ -12,9 +12,50 @@ app = Flask(__name__)
 hog = cv2.HOGDescriptor()
 hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
 
+# Load the cascade
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
 @app.route('/test',methods=['GET'])
 def test():
   return Response(response='Hello world...')
+
+def detectFaces(img):
+  #gray = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
+  # Detect faces
+  faces = face_cascade.detectMultiScale(img, 1.5, 4)
+  # Draw rectangle around the faces
+  for (x, y, w, h) in faces:
+    cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
+
+  cv2.imwrite('faces_detected.jpg',img)
+
+  return len(faces)
+
+def detectPedestrians(img):
+  image = imutils.resize(img, width=min(400, img.shape[1]))
+  orig = image.copy()
+
+  # detect people in the image
+  (rects, weights) = hog.detectMultiScale(image, winStride=(4, 4),
+    padding=(8, 8), scale=1.05)
+
+  # draw the original bounding boxes
+  for (x, y, w, h) in rects:
+    cv2.rectangle(orig, (x, y), (x + w, y + h), (0, 0, 255), 2)
+
+  # apply non-maxima suppression to the bounding boxes using a
+  # fairly large overlap threshold to try to maintain overlapping
+  # boxes that are still people
+  rects = np.array([[x, y, x + w, y + h] for (x, y, w, h) in rects])
+  pick = non_max_suppression(rects, probs=None, overlapThresh=0.65)
+
+  # draw the final bounding boxes
+  for (xA, yA, xB, yB) in pick:
+    cv2.rectangle(image, (xA, yA), (xB, yB), (0, 255, 0), 2)
+
+  cv2.imwrite('pedestrian_detected.jpg',image)
+  
+  return len(pick)
 
 
 # route http posts to this method
@@ -26,39 +67,29 @@ def uploadImg():
     # decode image
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    #image = cv2.imread(imagePath)
-    image = imutils.resize(img, width=min(400, img.shape[1]))
-    orig = image.copy()
-  
-    # detect people in the image
-    (rects, weights) = hog.detectMultiScale(image, winStride=(4, 4),
-      padding=(8, 8), scale=1.05)
-  
-    # draw the original bounding boxes
-    for (x, y, w, h) in rects:
-      cv2.rectangle(orig, (x, y), (x + w, y + h), (0, 0, 255), 2)
-  
-    # apply non-maxima suppression to the bounding boxes using a
-    # fairly large overlap threshold to try to maintain overlapping
-    # boxes that are still people
-    rects = np.array([[x, y, x + w, y + h] for (x, y, w, h) in rects])
-    pick = non_max_suppression(rects, probs=None, overlapThresh=0.65)
-  
-    # draw the final bounding boxes
-    for (xA, yA, xB, yB) in pick:
-      cv2.rectangle(image, (xA, yA), (xB, yB), (0, 255, 0), 2)
-  
-    # show some information on the number of bounding boxes
-    # filename = imagePath[imagePath.rfind("/") + 1:]
-    # print("[INFO] {}: {} original boxes, {} after suppression".format(
-    #   filename, len(rects), len(pick)))
-  
-    # show the output images
-    cv2.imwrite('detected.jpg',image)
-    cv2.waitKey(0)
+    faces = detectFaces(img)
+    pedestrians = detectPedestrians(img)
 
     response = {}
-    response['people'] = len(pick)
+    response['people'] = max(faces,pedestrians)
+
+    response['metadata'] = {}
+    response['metadata']['faces'] = faces
+    response['metadata']['pedestrians'] = pedestrians
+
+    diff = abs(faces-pedestrians)
+
+    confidence = 'low'
+    if diff <=0:
+      confidence = 'high'
+    if diff > 0:
+      confidence = 'medium'
+    if diff > 3:
+      confidence = 'low'
+
+    response['confidence'] = confidence
+
+    response['description'] = 'People is calculated by the higher number between faces and pedestrians\nConfidence levels:\nHigh: faces and pedestrians numbers match\nMedium: There is a difference of 1-3 between the numbers\nLow: The difference is higher than 3.'
 
     return Response(response=json.dumps(response), status=200, mimetype="application/json")
 
