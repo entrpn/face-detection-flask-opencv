@@ -1,3 +1,8 @@
+### Intro
+
+Sample project that uses flask and opencv to pass an image from client.py to server.py and perform
+face and pedestrian detection. The api returns the max of faces detected or pedestrians detected.
+
 ### Instructions
 
 #### Setup
@@ -17,6 +22,24 @@ Use with python 3.6
 ```python client.py```
 
 In client, change the filename to use different images.
+
+#### Notes
+
+The master branch uses opencv with haar features for face detection. It uses less dependencies but is less accurate.
+
+The branch f/cnn_face_detection uses CNNs and has better accuracy but requires more dependencies, including tensorflow.
+
+CNN:
+
+![CNN](people_faces_detected_cnn0.jpg)
+
+Haar:
+
+![Haar](people_faces_detected_haar.jpg)
+
+Pedestrians:
+
+![Pedestrians](detected.jpg)
 
 ### Resources
 
