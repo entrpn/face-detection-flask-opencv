@@ -5,6 +5,10 @@ import cv2
 import imutils
 import json
 
+from mtcnn.mtcnn import MTCNN
+
+model = MTCNN()
+
 # Initialize the Flask application
 app = Flask(__name__)
 
@@ -18,6 +22,17 @@ face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 @app.route('/test',methods=['GET'])
 def test():
   return Response(response='Hello world...')
+
+def detectFacesCNN(img):
+  faces = model.detect_faces(img)
+
+  for result in faces:
+    x, y, w, h = result['box']
+    cv2.rectangle(img, (x, y), (x+w, y+h), (255, 0, 0), 2)
+
+  cv2.imwrite('faces_detected_cnn.jpg',img)
+
+  return len(faces)
 
 def detectFaces(img):
   #gray = cv2.cvtColor(img, cv2.COLOR_RGBA2RGB)
@@ -67,7 +82,7 @@ def uploadImg():
     # decode image
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    faces = detectFaces(img)
+    faces = detectFacesCNN(img)
     pedestrians = detectPedestrians(img)
 
     response = {}
@@ -79,17 +94,7 @@ def uploadImg():
 
     diff = abs(faces-pedestrians)
 
-    confidence = 'low'
-    if diff <=0:
-      confidence = 'high'
-    if diff > 0:
-      confidence = 'medium'
-    if diff > 3:
-      confidence = 'low'
-
-    response['confidence'] = confidence
-
-    response['description'] = 'People is calculated by the higher number between faces and pedestrians\nConfidence levels:\nHigh: faces and pedestrians numbers match\nMedium: There is a difference of 1-3 between the numbers\nLow: The difference is higher than 3.'
+    response['description'] = 'People is calculated by the higher number between faces and pedestrians.'
 
     return Response(response=json.dumps(response), status=200, mimetype="application/json")
 

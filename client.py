@@ -10,7 +10,7 @@ test_url = addr + '/api/facedetect'
 content_type = 'image/jpeg'
 headers = {'content-type': content_type}
 
-filename = 'people'
+filename = 'pedestrians'
 
 img = cv2.imread(filename + '.jpg')
 # encode image as jpeg

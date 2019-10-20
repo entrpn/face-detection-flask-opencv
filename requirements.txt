@@ -2,3 +2,5 @@ requests
 opencv-python
 Flask
 imutils
+mtcnn
+tensorflow==1.14
