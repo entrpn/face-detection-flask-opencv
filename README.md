@@ -29,6 +29,10 @@ The master branch uses opencv with haar features for face detection. It uses les
 
 The branch f/cnn_face_detection uses CNNs and has better accuracy but requires more dependencies, including tensorflow.
 
+![Haar](faces_detected.jpg)
+
+![Pedestrians](detected.jpg)
+
 ### Resources
 
 People counter https://www.pyimagesearch.com/2018/08/13/opencv-people-counter/
